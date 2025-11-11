@@ -6,3 +6,45 @@ df = pd.read_excel(file_path, engine="openpyxl")
 pd.set_option('display.max_rows', None)
 
 print(df)
+
+
+pip install plyer pandas openpyxl schedule
+
+import pandas as pd
+from datetime import datetime
+from plyer import notification
+import schedule
+import time
+
+def send_notifications():
+    # Load the Excel file
+    df = pd.read_excel("assignments.xlsx")
+
+    today = datetime.today().date()
+
+    # Loop through assignments
+    for _, row in df.iterrows():
+        due_date = pd.to_datetime(row["Due Date"]).date()
+        days_left = (due_date - today).days
+
+        # Only notify for upcoming or due assignments
+        if days_left >= 0 and days_left <= 2:  # e.g., due today or within 2 days
+            title = f"Assignment Reminder: {row['Subject']}"
+            message = f"{row['Assignment']} is due on {due_date} ({days_left} day(s) left)"
+            notification.notify(
+                title=title,
+                message=message,
+                app_name="Assignment Tracker",
+                timeout=10
+            )
+            print(f"Notification sent for {row['Subject']}")
+
+# Schedule it once per day (e.g., 8 AM)
+schedule.every().day.at("08:00").do(send_notifications)
+
+print("📅 Daily reminder started...")
+
+# Keep script running
+while True:
+    schedule.run_pending()
+    time.sleep(60)
