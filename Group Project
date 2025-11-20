@@ -1,1 +1,107 @@
-Print("Hello World")
+from datetime import datetime, timedelta
+from openpyxl import Workbook, load_workbook
+from plyer import notification
+import os
+import platform
+import subprocess
+
+calendar = []
+
+# --------------------- LOAD CALENDAR ---------------------
+def load_calendar(filename="C:/users/chris/Desktop/calendar.xlsx"):
+    global calendar
+    try:
+        wb = load_workbook(filename)
+        sheet = wb.active
+
+        calendar = []
+        for row in sheet.iter_rows(min_row=2, values_only=True):
+            event, date_str, description = row
+            if event and date_str:
+                calendar.append({
+                    "event": event,
+                    "date": date_str,
+                    "description": description if description else ""
+                })
+
+        print("✅ Calendar loaded successfully.")
+    except:
+        print("No calendar found, creating a new one...")
+        save_calendar(filename)
+
+# --------------------- SAVE CALENDAR ---------------------
+def save_calendar(filename="C:/users/chris/Desktop/calendar.xlsx"):
+    wb = Workbook()
+    sheet = wb.active
+
+    sheet.append(["Event", "Date", "Description"])
+
+    for item in calendar:
+        sheet.append([item["event"], item["date"], item["description"]])
+
+    wb.save(filename)
+    print("💾 Calendar saved.")
+
+# --------------------- ADD EVENT ---------------------
+def add_event():
+    event = input("Event Name: ")
+    date = input("Event Date (YYYY-MM-DD): ")
+    description = input("Description: ")
+
+    calendar.append({
+        "event": event,
+        "date": date,
+        "description": description
+    })
+
+    save_calendar()
+    print("✅ Event added!")
+
+# --------------------- DESKTOP NOTIFICATION ---------------------
+def send_desktop_notification(event, description, date):
+    notification.notify(
+        title=f"Reminder: {event}",
+        message=f"{description}\nDue: {date}",
+        timeout=10
+    )
+
+# --------------------- CHECK REMINDERS ---------------------
+def check_reminders(calendar):
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    tomorrow_str = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    found = False
+
+    for item in calendar:
+        if item["date"] in (today_str, tomorrow_str):
+            send_desktop_notification(item["event"], item["description"], item["date"])
+            print(f"🔔 Reminder shown for: {item['event']} (due {item['date']})")
+            found = True
+
+    if not found:
+        print("No reminders due today or tomorrow.")
+
+# --------------------- MENU ---------------------
+def main():
+    load_calendar()
+
+    while True:
+        print("\n===== Reminder Calendar =====")
+        print("1. Add Event")
+        print("2. Check Reminders")
+        print("3. Exit")
+
+        choice = input("Select: ")
+
+        if choice == "1":
+            add_event()
+        elif choice == "2":
+            check_reminders(calendar)
+        elif choice == "3":
+            print("Goodbye!")
+            break
+        else:
+            print("Invalid choice.")
+
+main()
